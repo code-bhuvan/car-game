@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Car Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #228B22 70%, #228B22 100%);
+            font-family: Arial, sans-serif;
+        }
+        
+        .game-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .road {
+            width: 400px;
+            height: 500px;
+            background: #404040;
+            position: relative;
+            margin: 20px auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        .lane-markings {
+            position: absolute;
+            width: 10px;
+            height: 50px;
+            background: #FFD700;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        @keyframes moveDown {
+            0% { top: -60px; }
+            100% { top: 100%; }
+        }
+        
+        .car {
+            width: 60px;
+            height: 100px;
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: left 0.3s ease;
+        }
+        
+        .car-body {
+            width: 100%;
+            height: 70%;
+            background: #FF4444;
+            border-radius: 10px 10px 5px 5px;
+            position: relative;
+        }
+        
+        .car-window {
+            width: 80%;
+            height: 40%;
+            background: #87CEEB;
+            margin: 5% auto;
+            border-radius: 5px;
+        }
+        
+        .car-wheels {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 5px;
+        }
+        
+        .wheel {
+            width: 15px;
+            height: 30px;
+            background: #333;
+            border-radius: 3px;
+        }
+        
+        .obstacle {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(145deg, #ff6b6b, #ee5a6f);
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: top 0.05s linear;
+        }
+        
+        .obstacle::before {
+            content: '⚠️';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+        }
+        
+        .dashboard {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            gap: 15px;
+        }
+        
+        .gauge {
+            flex: 1;
+            padding: 15px;
+            background: linear-gradient(145deg, #2c3e50, #34495e);
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .gauge-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .gauge-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .gauge-unit {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .control-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .control-btn.active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .accel-btn {
+            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            color: white;
+        }
+        
+        .brake-btn {
+            background: linear-gradient(145deg, #c0392b, #e74c3c);
+            color: white;
+        }
+        
+        .clutch-btn {
+            background: linear-gradient(145deg, #2980b9, #3498db);
+            color: white;
+        }
+        
+        .warning {
+            color: #e74c3c;
+            font-weight: bold;
+            min-height: 25px;
+            margin-top: 10px;
+        }
+        
+        .instructions {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .instructions ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🏎️ Realistic Manual Transmission Car Game</h1>
+        
+        <div class="dashboard">
+            <div class="gauge">
+                <div class="gauge-label">SPEED</div>
+                <div class="gauge-value" id="speedDisplay">0</div>
+                <div class="gauge-unit">km/h</div>
+            </div>
+            <div class="gauge">
+                <div class="gauge-label">RPM</div>
+                <div class="gauge-value" id="rpmDisplay">800</div>
+                <div class="gauge-unit">rpm</div>
+            </div>
+            <div class="gauge">
+                <div class="gauge-label">GEAR</div>
+                <div class="gauge-value" id="gearDisplay">N</div>
+                <div class="gauge-unit">gear</div>
+            </div>
+            <div class="gauge">
+                <div class="gauge-label">SCORE</div>
+                <div class="gauge-value" id="scoreDisplay">0</div>
+                <div class="gauge-unit">pts</div>
+            </div>
+        </div>
+        
+        <div class="road">
+            <div class="lane-markings" id="lane1"></div>
+            <div class="lane-markings" id="lane2"></div>
+            <div class="lane-markings" id="lane3"></div>
+            <div class="lane-markings" id="lane4"></div>
+            <div class="lane-markings" id="lane5"></div>
+            <div class="lane-markings" id="lane6"></div>
+            <div class="lane-markings" id="lane7"></div>
+            <div class="lane-markings" id="lane8"></div>
+            
+            <div class="car" id="car">
+                <div class="car-body">
+                    <div class="car-window"></div>
+                </div>
+                <div class="car-wheels">
+                    <div class="wheel"></div>
+                    <div class="wheel"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="control-btn accel-btn" id="accelBtn">A - Accelerate</button>
+            <button class="control-btn brake-btn" id="brakeBtn">B - Brake</button>
+            <button class="control-btn clutch-btn" id="clutchBtn">C - Clutch</button>
+        </div>
+        
+        <div class="warning" id="warning"></div>
+        
+        <div class="instructions">
+            <h3>How to Drive (Realistic Manual!):</h3>
+            <ul>
+                <li><strong>Start:</strong> Press C (clutch) + 1 (first gear) to begin</li>
+                <li><strong>A</strong> - Accelerate (increase speed)</li>
+                <li><strong>B</strong> - Brake (only works with clutch!)</li>
+                <li><strong>C</strong> - Clutch (hold to engage)</li>
+                <li><strong>←</strong> Left Arrow - Steer Left</li>
+                <li><strong>→</strong> Right Arrow - Steer Right</li>
+                <li><strong>1-9</strong> - Change gears (clutch required)</li>
+                <li><strong>N</strong> - Neutral gear</li>
+                <li><strong>Important:</strong> Use the right gear for your speed or you'll stall!</li>
+                <li><strong>Gear Guide:</strong> 1st: 0-30 km/h, 2nd: 15-50, 3rd: 30-75, 4th: 45-100...</li>
+                <li><strong>Goal:</strong> Drive through obstacles to score points!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let speed = 0;
+        let rpm = 800;
+        let gear = 0; // 0 = neutral
+        let clutchPressed = false;
+        let brakePressed = false;
+        let accelPressed = false;
+        let distance = 0;
+        let laneOffset = 0;
+        let carPosition = 50;
+        let obstacles = [];
+        let obstacleSpawnTimer = 0;
+        let score = 0;
+        let engineStalled = false;
+        
+        const speedDisplay = document.getElementById('speedDisplay');
+        const rpmDisplay = document.getElementById('rpmDisplay');
+        const gearDisplay = document.getElementById('gearDisplay');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const warning = document.getElementById('warning');
+        const accelBtn = document.getElementById('accelBtn');
+        const brakeBtn = document.getElementById('brakeBtn');
+        const clutchBtn = document.getElementById('clutchBtn');
+        const car = document.getElementById('car');
+        const road = document.querySelector('.road');
+        
+        const laneMarkings = [
+            document.getElementById('lane1'),
+            document.getElementById('lane2'),
+            document.getElementById('lane3'),
+            document.getElementById('lane4'),
+            document.getElementById('lane5'),
+            document.getElementById('lane6'),
+            document.getElementById('lane7'),
+            document.getElementById('lane8')
+        ];
+        
+        const gearData = {
+            0: { ratio: 0, minSpeed: 0, maxSpeed: 0, optimalRpmRange: [800, 1000] },
+            1: { ratio: 0.8, minSpeed: 0, maxSpeed: 80, optimalRpmRange: [1000, 3000] },
+            2: { ratio: 1.6, minSpeed: 40, maxSpeed: 150, optimalRpmRange: [1500, 3500] },
+            3: { ratio: 2.4, minSpeed: 80, maxSpeed: 230, optimalRpmRange: [2000, 4000] },
+            4: { ratio: 3.2, minSpeed: 120, maxSpeed: 310, optimalRpmRange: [2000, 4500] },
+            5: { ratio: 4.0, minSpeed: 160, maxSpeed: 390, optimalRpmRange: [2500, 5000] },
+            6: { ratio: 4.8, minSpeed: 210, maxSpeed: 480, optimalRpmRange: [2500, 5500] },
+            7: { ratio: 5.6, minSpeed: 270, maxSpeed: 560, optimalRpmRange: [3000, 6000] },
+            8: { ratio: 6.4, minSpeed: 330, maxSpeed: 630, optimalRpmRange: [3000, 6000] },
+            9: { ratio: 7.2, minSpeed: 400, maxSpeed: 700, optimalRpmRange: [3000, 6000] }
+        };
+        
+        function updateDisplay() {
+            speedDisplay.textContent = Math.floor(speed);
+            rpmDisplay.textContent = Math.floor(rpm);
+            gearDisplay.textContent = gear === 0 ? 'N' : gear;
+            scoreDisplay.textContent = score;
+            
+            if (engineStalled) {
+                rpmDisplay.style.color = '#ff4444';
+                gearDisplay.style.color = '#ff4444';
+            } else {
+                rpmDisplay.style.color = '#00ff88';
+                gearDisplay.style.color = '#00ff88';
+            }
+        }
+        
+        function showWarning(msg) {
+            warning.textContent = msg;
+            setTimeout(() => {
+                if (warning.textContent === msg) {
+                    warning.textContent = '';
+                }
+            }, 2000);
+        }
+        
+        function updateRoadAnimation() {
+            laneOffset += speed / 2;
+            
+            laneMarkings.forEach((lane, index) => {
+                let position = (laneOffset + index * 80) % 560 - 60;
+                lane.style.top = position + 'px';
+            });
+            
+            car.style.left = carPosition + '%';
+            
+            if (speed > 5) {
+                obstacleSpawnTimer++;
+                let spawnRate = Math.max(30, 120 - speed * 2);
+                
+                if (obstacleSpawnTimer > spawnRate) {
+                    spawnObstacle();
+                    obstacleSpawnTimer = 0;
+                }
+            }
+            
+            updateObstacles();
+        }
+        
+        function spawnObstacle() {
+            const obstacle = document.createElement('div');
+            obstacle.className = 'obstacle';
+            
+            const randomPos = 15 + Math.random() * 70;
+            obstacle.style.left = randomPos + '%';
+            obstacle.style.top = '-60px';
+            
+            road.appendChild(obstacle);
+            obstacles.push({
+                element: obstacle,
+                position: randomPos,
+                top: -60
+            });
+        }
+        
+        function updateObstacles() {
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                
+                obs.top += speed / 2;
+                obs.element.style.top = obs.top + 'px';
+                
+                if (obs.top > 350 && obs.top < 450) {
+                    if (!obs.scored) {
+                        score += Math.floor(speed / 10);
+                        obs.scored = true;
+                    }
+                }
+                
+                if (obs.top > 550) {
+                    obs.element.remove();
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+        
+        function gameLoop() {
+            if (engineStalled) {
+                rpm = 0;
+                speed -= 1;
+                if (speed < 0) speed = 0;
+                updateDisplay();
+                updateRoadAnimation();
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+            
+            if (gear > 0) {
+                let calculatedRpm = 800 + (speed / gearData[gear].ratio) * 15;
+                
+                if (!accelPressed) {
+                    rpm = calculatedRpm;
+                }
+            }
+            
+            if (accelPressed && gear > 0) {
+                if (speed < gearData[gear].minSpeed * 0.5) {
+                    rpm -= 100;
+                    showWarning(`Gear too high! Downshift or engine will stall!`);
+                    
+                    if (rpm < 500) {
+                        engineStalled = true;
+                        gear = 0;
+                        showWarning('ENGINE STALLED! Press C and shift to Neutral (N), then restart (1st gear)');
+                    }
+                } else {
+                    rpm += 50;
+                    if (rpm > 6500) rpm = 6500;
+                    
+                    let targetSpeed = (rpm - 800) * gearData[gear].ratio / 15;
+                    
+                    if (targetSpeed > gearData[gear].maxSpeed) {
+                        targetSpeed = gearData[gear].maxSpeed;
+                        showWarning(`Max speed for gear ${gear}! Shift up!`);
+                    }
+                    
+                    speed += (targetSpeed - speed) * 0.08;
+                }
+                
+                distance += speed / 60;
+            }
+            
+            if (brakePressed && clutchPressed && speed > 0) {
+                speed -= 2.5;
+                if (speed < 0) speed = 0;
+            }
+            
+            if (!accelPressed && gear === 0) {
+                rpm = 800;
+            }
+            
+            if (!accelPressed && speed > 0) {
+                speed -= 0.3;
+                if (speed < 0) speed = 0;
+            }
+            
+            if (gear > 0 && !accelPressed && !clutchPressed) {
+                speed -= 0.2 * gear;
+            }
+            
+            if (!clutchPressed && gear > 0 && speed < gearData[gear].minSpeed * 0.3 && !accelPressed) {
+                rpm -= 50;
+                if (rpm < 500) {
+                    engineStalled = true;
+                    gear = 0;
+                    showWarning('ENGINE STALLED! Too slow for this gear. Press C, shift to N, then restart');
+                }
+            }
+            
+            if (rpm < 800 && !engineStalled && gear === 0) rpm = 800;
+            if (rpm > 6500) rpm = 6500;
+            
+            updateDisplay();
+            updateRoadAnimation();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            
+            if (key === 'a') {
+                accelPressed = true;
+                accelBtn.classList.add('active');
+                if (gear === 0) {
+                    showWarning('Put the car in gear first!');
+                }
+            }
+            
+            if (key === 'b') {
+                brakePressed = true;
+                brakeBtn.classList.add('active');
+                if (!clutchPressed) {
+                    showWarning('Press clutch (C) to brake!');
+                }
+            }
+            
+            if (key === 'c') {
+                clutchPressed = true;
+                clutchBtn.classList.add('active');
+            }
+            
+            if (key === 'arrowleft') {
+                carPosition -= 3;
+                if (carPosition < 15) carPosition = 15;
+            }
+            
+            if (key === 'arrowright') {
+                carPosition += 3;
+                if (carPosition > 85) carPosition = 85;
+            }
+            
+            if (key >= '1' && key <= '9') {
+                if (clutchPressed) {
+                    const newGear = parseInt(key);
+                    gear = newGear;
+                    
+                    // Check if we're over-revving (speed too high for this gear)
+                    if (speed > gearData[newGear].maxSpeed * 0.9) {
+                        showWarning(`OVER-REV! Engine damaged!`);
+                        engineStalled = true;
+                        gear = 0;
+                        rpm = 0;
+                        setTimeout(() => {
+                            showWarning('ENGINE BLOWN! Press C + N to restart');
+                        }, 500);
+                    } 
+                    // Check if we're lugging (speed too low for this gear)
+                    else if (speed > 0 && speed < gearData[newGear].minSpeed * 0.3 && newGear > 1) {
+                        showWarning(`Too slow for gear ${newGear}! Engine struggling...`);
+                    } 
+                    // Normal gear change
+                    else {
+                        showWarning(`Shifted to gear ${gear}`);
+                        
+                        if (engineStalled && gear === 1) {
+                            engineStalled = false;
+                            rpm = 800;
+                            showWarning('Engine restarted!');
+                        }
+                    }
+                } else {
+                    showWarning('Press clutch (C) to change gear!');
+                }
+            }
+            
+            if (key === 'n') {
+                if (clutchPressed) {
+                    gear = 0;
+                    showWarning('Shifted to Neutral');
+                    
+                    if (engineStalled) {
+                        engineStalled = false;
+                        rpm = 800;
+                        showWarning('Engine restarted in Neutral');
+                    }
+                } else {
+                    showWarning('Press clutch (C) to change gear!');
+                }
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            
+            if (key === 'a') {
+                accelPressed = false;
+                accelBtn.classList.remove('active');
+            }
+            
+            if (key === 'b') {
+                brakePressed = false;
+                brakeBtn.classList.remove('active');
+            }
+            
+            if (key === 'c') {
+                clutchPressed = false;
+                clutchBtn.classList.remove('active');
+            }
+        });
+        
+        accelBtn.addEventListener('mousedown', () => {
+            accelPressed = true;
+            accelBtn.classList.add('active');
+            if (gear === 0) showWarning('Put the car in gear first!');
+        });
+        accelBtn.addEventListener('mouseup', () => {
+            accelPressed = false;
+            accelBtn.classList.remove('active');
+        });
+        
+        brakeBtn.addEventListener('mousedown', () => {
+            brakePressed = true;
+            brakeBtn.classList.add('active');
+            if (!clutchPressed) showWarning('Press clutch (C) to brake!');
+        });
+        brakeBtn.addEventListener('mouseup', () => {
+            brakePressed = false;
+            brakeBtn.classList.remove('active');
+        });
+        
+        clutchBtn.addEventListener('mousedown', () => {
+            clutchPressed = true;
+            clutchBtn.classList.add('active');
+        });
+        clutchBtn.addEventListener('mouseup', () => {
+            clutchPressed = false;
+            clutchBtn.classList.remove('active');
+        });
+        
+        gameLoop();
+    </script>
+</body>
+</html>
